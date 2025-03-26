@@ -18,5 +18,98 @@ CREATE TABLE
         google_account_id INT DEFAULT 0
     );
 
+CREATE TABLE
+    tokens (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        token VARCHAR(255) UNIQUE NOT NULL,
+        token_type VARCHAR(50) NOT NULL,
+        expiration_date DATETIME,
+        revoked TINYINT (1) NOT NULL,
+        expired TINYINT (1) NOT NULL,
+        user_id INT,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    );
 
-CREATE TABLE 
+-- Thêm cột role_id vào bảng users
+ALTER TABLE users
+ADD COLUMN role_id INT;
+
+-- Tạo bảng roles để quản lý vai trò người dùng
+CREATE TABLE
+    roles (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(20) NOT NULL
+    );
+
+-- Thêm khóa ngoại vào bảng users để liên kết với bảng roles
+ALTER TABLE users ADD CONSTRAINT fk_users_roles FOREIGN KEY (role_id) REFERENCES roles (id);
+
+-- Hỗ trợ đăng nhập từ Facebook và Google
+CREATE TABLE
+    social_accounts (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        provider VARCHAR(20) NOT NULL COMMENT 'Tên nhà social network',
+        provider_id VARCHAR(50) NOT NULL,
+        email VARCHAR(150) NOT NULL COMMENT 'Email tài khoản',
+        name VARCHAR(100) NOT NULL COMMENT 'Tên người dùng',
+        user_id INT,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    );
+
+-- Bảng danh mục sản phẩm (Category)
+CREATE TABLE
+    categories (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'Tên danh mục, vd: đồ điện tử'
+    );
+
+-- Bảng chứa sản phẩm (Product) 
+-- Ví dụ sản phẩm: "laptop macbook air 15 inch 2023", "iphone 15 pro", ...
+CREATE TABLE
+    products (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(350) NOT NULL COMMENT 'Tên sản phẩm',
+        price FLOAT NOT NULL CHECK (price >= 0),
+        thumbnail VARCHAR(300) DEFAULT '',
+        description LONGTEXT DEFAULT '',
+        created_at DATETIME,
+        updated_at DATETIME,
+        category_id INT,
+        FOREIGN KEY (category_id) REFERENCES categories (id)
+    );
+
+-- Bảng đặt hàng (orders)
+CREATE TABLE
+    orders (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT,
+        fullname VARCHAR(100) NOT NULL DEFAULT '',
+        email VARCHAR(100) NOT NULL DEFAULT '',
+        phone_number VARCHAR(20) NOT NULL,
+        address VARCHAR(200) NOT NULL,
+        note VARCHAR(100) DEFAULT '',
+        order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        total_money FLOAT NOT NULL CHECK (total_money >= 0),
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    );
+
+ALTER TABLE orders
+ADD COLUMN `shipping_method` VARCHAR(100);
+
+ALTER TABLE orders
+ADD COLUMN `shipping_address` VARCHAR(200);
+
+ALTER TABLE orders
+ADD COLUMN `shipping_date` DATE;
+
+ALTER TABLE orders
+ADD COLUMN `tracking_number` VARCHAR(100);
+ALTER TABLE orders
+ADD COLUMN `payment_method` VARCHAR(100);
+
+ALTER TABLE orders ADD COLUMN active TINYINT(1);
+-- Trạng thái đơn hàng chỉ được phép nhận "một số giá trị cụ thể"
+ALTER TABLE orders 
+MODIFY COLUMN status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') 
+COMMENT 'Trạng thái đơn hàng';
